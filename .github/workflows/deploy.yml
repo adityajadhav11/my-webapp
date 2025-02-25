@@ -1,18 +1,20 @@
-name: Deploy to Azure Web App
+name: Deploy Node.js App to Azure
 
 on:
   push:
     branches:
-      - main
+      - main  # Runs only when code is pushed to the main branch
 
 jobs:
   build-and-deploy:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout Repository
-        uses: actions/checkout@v3
+      # Checkout the repository
+      - name: Checkout code
+        uses: actions/checkout@v4
 
+      # Log in to Azure
       - name: Log in to Azure
         uses: azure/login@v1
         with:
@@ -20,13 +22,35 @@ jobs:
           tenant-id: ${{ secrets.AZURE_TENANT_ID }}
           subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
 
-      - name: Build and Push Docker Image
+      # Set up Node.js
+      - name: Set up Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: 20  # Change this if using another Node.js version
+
+      # Install dependencies
+      - name: Install Dependencies
+        run: npm install
+
+      # Build the app (if applicable)
+      - name: Build the application
+        run: npm run build || echo "Skipping build step"
+
+      # Log in to Azure Container Registry (if using Docker)
+      - name: Log in to Azure Container Registry
+        run: az acr login --name mywebappregistry
+
+      # Tag and push Docker image (if applicable)
+      - name: Tag and Push Docker Image
         run: |
           docker build -t my-webapp:latest .
-          echo "${{ secrets.AZURE_CLIENT_SECRET }}" | docker login mycontainerregistry.azurecr.io -u ${{ secrets.AZURE_CLIENT_ID }} --password-stdin
-          docker tag my-webapp:latest mycontainerregistry.azurecr.io/my-webapp:latest
-          docker push mycontainerregistry.azurecr.io/my-webapp:latest
+          docker tag my-webapp:latest your-acr-name.azurecr.io/my-webapp:latest
+          docker push your-acr-name.azurecr.io/my-webapp:latest
 
+      # Deploy to Azure Web App
       - name: Deploy to Azure Web App
-        run: |
-          az webapp config container set --name rg-my-webapp --resource-group rg-my-webapp --docker-custom-image-name mycontainerregistry.azurecr.io/my-webapp:latest
+        uses: azure/webapps-deploy@v3
+        with:
+          app-name: rg-my-webapp  # Replace with your Azure Web App name
+          slot-name: production
+          package: .
