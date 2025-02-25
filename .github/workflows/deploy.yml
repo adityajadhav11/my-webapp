@@ -5,6 +5,10 @@ on:
     branches:
       - main
 
+permissions:
+  id-token: write  # ✅ FIX: Allows GitHub to generate an ID token
+  contents: read   # ✅ Required for repository access
+
 jobs:
   build-and-deploy:
     runs-on: ubuntu-latest
@@ -35,11 +39,11 @@ jobs:
 
       - name: Build and Push Docker Image
         run: |
-          docker build -t your-acr-name.azurecr.io/my-webapp:latest .
-          docker push your-acr-name.azurecr.io/my-webapp:latest
+          docker build -t mywebappregistry.io/my-webapp:latest .
+          docker push mywebappregistry.io/my-webapp:latest
 
       - name: Deploy to Azure Web App
         uses: azure/webapps-deploy@v2
         with:
           app-name: rg-my-webapp
-          images: mywebappregistry.azurecr.io/my-webapp:latest
+          images: mywebappregistry.io/my-webapp:latest
